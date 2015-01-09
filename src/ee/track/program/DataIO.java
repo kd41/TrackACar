@@ -11,9 +11,9 @@ import ee.track.model.Data;
 
 public class DataIO {
     public static final String CHANGES_FILE_NAME = "resources/changes.txt";
+    public static final String LINKS_FILE_NAME = "resources/links.txt";
 
     private static final String RESULT_FILE_NAME = "resources/results.txt";
-    private static final String LINKS_FILE_NAME = "resources/links.txt";
 
     public static void saveResults(List<Data> results) throws IOException {
         FileUtils.writeLines(new File(RESULT_FILE_NAME), results, false);
