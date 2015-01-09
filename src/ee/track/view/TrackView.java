@@ -1,11 +1,18 @@
 package ee.track.view;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.SystemColor;
+import java.awt.event.ActionEvent;
 import java.beans.PropertyVetoException;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
@@ -19,11 +26,24 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+
+import ee.track.program.DataIO;
+
 public class TrackView extends JFrame {
+    private static Logger logger = Logger.getLogger(TrackView.class);
     private static final long serialVersionUID = 1982053004822801315L;
+    private final Map<String, Component> components = new HashMap<>();
     private final JInternalFrame internalFrame = new JInternalFrame("Information view");
+    private final Action startStopAction = new StartStopAction();
+    private final Action radioButtonAction = new RadioButtonAction();
+    private final Action openListAction = new OpenListAction();
+    private final Action openLogsAction = new OpenLogsAction();
+    private final Action exitAction = new ExitAction();
 
     public TrackView() throws PropertyVetoException {
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setTitle("TrackACar viewer");
 
         JMenuBar menuBar = new JMenuBar();
@@ -32,14 +52,20 @@ public class TrackView extends JFrame {
         JMenu mnFile = new JMenu("File");
         menuBar.add(mnFile);
 
-        JMenuItem mntmOpenList = new JMenuItem("Open list to track");
+        JMenuItem mntmOpenList = new JMenuItem();
+        mntmOpenList.setAction(openListAction);
+        mntmOpenList.setText("Open list to track");
         mnFile.add(mntmOpenList);
 
-        JMenuItem mntmExit = new JMenuItem("Open logs");
-        mnFile.add(mntmExit);
+        JMenuItem mntmOpenLogs = new JMenuItem();
+        mntmOpenLogs.setAction(openLogsAction);
+        mntmOpenLogs.setText("Open logs");
+        mnFile.add(mntmOpenLogs);
 
-        JMenuItem mntmNewMenuItem_2 = new JMenuItem("Exit");
-        mnFile.add(mntmNewMenuItem_2);
+        JMenuItem mntmExit = new JMenuItem();
+        mntmExit.setAction(exitAction);
+        mntmExit.setText("Exit");
+        mnFile.add(mntmExit);
 
         JMenu mnTrackACar = new JMenu("TrackACar");
         menuBar.add(mnTrackACar);
@@ -71,19 +97,27 @@ public class TrackView extends JFrame {
         lblCheckFor.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
         JRadioButton rdbtn10min = new JRadioButton("");
+        rdbtn10min.setName("10");
+        rdbtn10min.setAction(radioButtonAction);
         rdbtn10min.setBounds(80, 5, 20, 20);
         panelSettings.add(rdbtn10min);
 
         JRadioButton rdbtn15min = new JRadioButton("");
+        rdbtn15min.setAction(radioButtonAction);
+        rdbtn15min.setName("15");
         rdbtn15min.setSelected(true);
         rdbtn15min.setBounds(105, 5, 20, 20);
         panelSettings.add(rdbtn15min);
 
         JRadioButton rdbtn30min = new JRadioButton("");
+        rdbtn30min.setAction(radioButtonAction);
+        rdbtn30min.setName("30");
         rdbtn30min.setBounds(130, 5, 20, 20);
         panelSettings.add(rdbtn30min);
 
         JRadioButton rdbtn60min = new JRadioButton("");
+        rdbtn60min.setAction(radioButtonAction);
+        rdbtn60min.setName("60");
         rdbtn60min.setBounds(155, 5, 20, 20);
         panelSettings.add(rdbtn60min);
 
@@ -112,15 +146,19 @@ public class TrackView extends JFrame {
         lbl60.setBounds(160, 25, 15, 15);
         panelSettings.add(lbl60);
 
-        JButton btnStart = new JButton("Start");
+        JButton btnStart = new JButton();
+        btnStart.setAction(startStopAction);
+        btnStart.setText("Start");
         btnStart.setForeground(Color.BLACK);
         btnStart.setFont(new Font("Tahoma", Font.BOLD, 14));
         btnStart.setBounds(180, 5, 90, 30);
         panelSettings.add(btnStart);
 
-        JButton btnStop = new JButton("Stop");
-        btnStop.setFont(new Font("Tahoma", Font.BOLD, 14));
+        JButton btnStop = new JButton();
+        btnStop.setAction(startStopAction);
+        btnStop.setText("Stop");
         btnStop.setEnabled(false);
+        btnStop.setFont(new Font("Tahoma", Font.BOLD, 14));
         btnStop.setBounds(275, 5, 90, 30);
         panelSettings.add(btnStop);
 
@@ -147,6 +185,23 @@ public class TrackView extends JFrame {
         JLabel lblCopyright = new JLabel("Copyright @ Aleksei Mahhov, 2015");
         lblCopyright.setBounds(700, 270, 260, 15);
         getContentPane().add(lblCopyright);
+
+        components.put(btnStart.getText(), btnStart);
+        components.put(btnStop.getText(), btnStop);
+        components.put("Status1", lblStatus1);
+        components.put("Status2", lblStatus2);
+        components.put(rdbtn10min.getName(), rdbtn10min);
+        components.put(rdbtn15min.getName(), rdbtn15min);
+        components.put(rdbtn30min.getName(), rdbtn30min);
+        components.put(rdbtn60min.getName(), rdbtn60min);
+    }
+
+    public Component getComponentByName(String name) {
+        Component component = components.get(name);
+        if (component != null) {
+            return component;
+        }
+        throw new IllegalArgumentException("No component foudn for name=" + name);
     }
 
     public static void main(String[] args) {
@@ -161,5 +216,103 @@ public class TrackView extends JFrame {
                 }
             }
         });
+    }
+
+    /* Actions */
+
+    private class StartStopAction extends AbstractAction {
+        private static final long serialVersionUID = -9204629333569183907L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JButton button = (JButton) e.getSource();
+            JLabel status1 = (JLabel) getComponentByName("Status1");
+            if ("Start".equals(button.getText())) {
+                JButton btnStop = (JButton) getComponentByName("Stop");
+                button.setEnabled(false);
+                btnStop.setEnabled(true);
+                status1.setText("Track started");
+            } else {
+                JButton btnStart = (JButton) getComponentByName("Start");
+                btnStart.setEnabled(true);
+                button.setEnabled(false);
+                status1.setText("Track stoped");
+            }
+        }
+    }
+
+    private class RadioButtonAction extends AbstractAction {
+        private static final long serialVersionUID = -5536479956603719879L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JRadioButton button = (JRadioButton) e.getSource();
+            JRadioButton button10 = (JRadioButton) getComponentByName("10");
+            JRadioButton button15 = (JRadioButton) getComponentByName("15");
+            JRadioButton button30 = (JRadioButton) getComponentByName("30");
+            JRadioButton button60 = (JRadioButton) getComponentByName("60");
+            button10.setSelected(false);
+            button15.setSelected(false);
+            button30.setSelected(false);
+            button60.setSelected(false);
+            if ("10".equals(button.getName())) {
+                button10.setSelected(true);
+            } else if ("15".equals(button.getName())) {
+                button15.setSelected(true);
+            } else if ("30".equals(button.getName())) {
+                button30.setSelected(true);
+            } else if ("60".equals(button.getName())) {
+                button60.setSelected(true);
+            }
+        }
+    }
+
+    private class OpenListAction extends AbstractAction {
+        private static final long serialVersionUID = 2852229236396176144L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JLabel status2 = (JLabel) getComponentByName("Status2");
+            if (isWindowsOS()) {
+                Runtime runtime = Runtime.getRuntime();
+                try {
+                    runtime.exec("C:/Windows/system32/notepad.exe " + System.getProperty("user.dir") + "/" + DataIO.LINKS_FILE_NAME);
+                } catch (IOException e1) {
+                    logger.error(e1.getMessage(), e1);
+                }
+            }
+        }
+    }
+
+    private class OpenLogsAction extends AbstractAction {
+        private static final long serialVersionUID = -4087647098254232803L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JLabel status2 = (JLabel) getComponentByName("Status2");
+            if (isWindowsOS()) {
+                Runtime runtime = Runtime.getRuntime();
+                try {
+                    runtime.exec("C:/Windows/system32/notepad.exe " + System.getProperty("user.dir") + "/trackacar.log");
+                } catch (IOException e1) {
+                    logger.error(e1.getMessage(), e1);
+                }
+            }
+        }
+    }
+
+    private class ExitAction extends AbstractAction {
+        private static final long serialVersionUID = -6510209252826150673L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            System.exit(0);
+        }
+    }
+
+    /* Helpers */
+
+    private boolean isWindowsOS() {
+        return StringUtils.containsIgnoreCase(System.getProperty("os.name"), "windows");
     }
 }
