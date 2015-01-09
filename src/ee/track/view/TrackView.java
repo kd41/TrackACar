@@ -41,6 +41,7 @@ public class TrackView extends JFrame {
     private final Action openListAction = new OpenListAction();
     private final Action openLogsAction = new OpenLogsAction();
     private final Action exitAction = new ExitAction();
+    private final Action showInterFrameAction = new ShowInternalFrameAction();
 
     public TrackView() throws PropertyVetoException {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -70,10 +71,14 @@ public class TrackView extends JFrame {
         JMenu mnTrackACar = new JMenu("TrackACar");
         menuBar.add(mnTrackACar);
 
-        JMenuItem mntmDescription = new JMenuItem("Description");
+        JMenuItem mntmDescription = new JMenuItem();
+        mntmDescription.setAction(showInterFrameAction);
+        mntmDescription.setText("Description");
         mnTrackACar.add(mntmDescription);
 
-        JMenuItem mntmAbout = new JMenuItem("About");
+        JMenuItem mntmAbout = new JMenuItem();
+        mntmAbout.setAction(showInterFrameAction);
+        mntmAbout.setText("About");
         mnTrackACar.add(mntmAbout);
         getContentPane().setLayout(null);
         internalFrame.setClosable(true);
@@ -307,6 +312,22 @@ public class TrackView extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             System.exit(0);
+        }
+    }
+
+    private class ShowInternalFrameAction extends AbstractAction {
+        private static final long serialVersionUID = 7156471072828176364L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JMenuItem menuItem = (JMenuItem) e.getSource();
+            JTextPane textPane = (JTextPane) internalFrame.getContentPane().getComponent(0);
+            if ("Description".equals(menuItem.getText())) {
+                textPane.setText("Description of this program");
+            } else if ("About".equals(menuItem.getText())) {
+                textPane.setText("Track a car program.\nVersion 1.0");
+            }
+            internalFrame.setVisible(true);
         }
     }
 
