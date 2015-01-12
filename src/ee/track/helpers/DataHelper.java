@@ -1,4 +1,4 @@
-package ee.track.program;
+package ee.track.helpers;
 
 import ee.track.model.Data;
 import ee.track.model.DataChange;

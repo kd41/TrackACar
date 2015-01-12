@@ -1,6 +1,6 @@
 package ee.track.program;
 
-import static ee.track.program.DataHelper.getDataChage;
+import static ee.track.helpers.DataHelper.getDataChage;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,8 +10,12 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import ee.track.helpers.DataIO;
 import ee.track.model.Data;
 import ee.track.model.DataChange;
+import ee.track.service.ProcessorService;
+import ee.track.service.impl.ProcessorServiceImpl;
+import ee.track.service.impl.ProcessorServiceMockImpl;
 
 public class TrackTask implements Runnable {
     private static Logger logger = Logger.getLogger(TrackTask.class);
@@ -31,8 +35,8 @@ public class TrackTask implements Runnable {
             ProcessorService processor = null;
             for (String url : DataIO.getUrls()) {
                 // get search results
-                // processor = new ProcessorServiceMockImpl(url);
-                processor = new ProcessorServiceImpl(url);
+                 processor = new ProcessorServiceMockImpl(url);
+//                processor = new ProcessorServiceImpl(url);
                 newResults = processor.getData();
 
                 // skip if nothing found

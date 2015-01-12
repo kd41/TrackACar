@@ -2,11 +2,9 @@ package ee.track.view;
 
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.SystemColor;
 import java.awt.event.ActionEvent;
-import java.beans.PropertyVetoException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,11 +27,12 @@ import javax.swing.JTextPane;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
-import ee.track.program.DataIO;
+import ee.track.helpers.DataIO;
+import ee.track.program.TrackContext;
 
-public class TrackView extends JFrame {
+public class TrackView {
     private static Logger logger = Logger.getLogger(TrackView.class);
-    private static final long serialVersionUID = 1982053004822801315L;
+    private final JFrame frame = new JFrame();
     private final Map<String, Component> components = new HashMap<>();
     private final JInternalFrame internalFrame = new JInternalFrame("Information view");
     private final Action startStopAction = new StartStopAction();
@@ -42,13 +41,14 @@ public class TrackView extends JFrame {
     private final Action openLogsAction = new OpenLogsAction();
     private final Action exitAction = new ExitAction();
     private final Action showInterFrameAction = new ShowInternalFrameAction();
+    private TrackContext context;
 
-    public TrackView() throws PropertyVetoException {
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setTitle("TrackACar viewer");
+    public TrackView(TrackContext context) {
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setTitle("TrackACar viewer");
 
         JMenuBar menuBar = new JMenuBar();
-        setJMenuBar(menuBar);
+        frame.setJMenuBar(menuBar);
 
         JMenu mnFile = new JMenu("File");
         menuBar.add(mnFile);
@@ -80,10 +80,10 @@ public class TrackView extends JFrame {
         mntmAbout.setAction(showInterFrameAction);
         mntmAbout.setText("About");
         mnTrackACar.add(mntmAbout);
-        getContentPane().setLayout(null);
+        frame.getContentPane().setLayout(null);
         internalFrame.setClosable(true);
         internalFrame.setBounds(410, 11, 550, 240);
-        getContentPane().add(internalFrame);
+        frame.getContentPane().add(internalFrame);
         internalFrame.getContentPane().setLayout(null);
 
         JTextPane textPane = new JTextPane();
@@ -93,7 +93,7 @@ public class TrackView extends JFrame {
 
         JPanel panelSettings = new JPanel();
         panelSettings.setBounds(0, 0, 380, 40);
-        getContentPane().add(panelSettings);
+        frame.getContentPane().add(panelSettings);
         panelSettings.setLayout(null);
 
         JLabel lblCheckFor = new JLabel("Check for:");
@@ -169,27 +169,27 @@ public class TrackView extends JFrame {
 
         JLabel lblStatus1 = new JLabel("");
         lblStatus1.setBounds(400, 10, 560, 15);
-        getContentPane().add(lblStatus1);
+        frame.getContentPane().add(lblStatus1);
 
         JLabel lblStatus2 = new JLabel("");
         lblStatus2.setBounds(400, 30, 560, 15);
-        getContentPane().add(lblStatus2);
+        frame.getContentPane().add(lblStatus2);
 
         JLabel lblLogs = new JLabel("Logs:");
         lblLogs.setFont(new Font("Tahoma", Font.PLAIN, 12));
         lblLogs.setBounds(5, 50, 46, 15);
-        getContentPane().add(lblLogs);
+        frame.getContentPane().add(lblLogs);
 
         JScrollPane scrollPaneLogs = new JScrollPane();
         scrollPaneLogs.setBounds(5, 65, 960, 200);
-        getContentPane().add(scrollPaneLogs);
+        frame.getContentPane().add(scrollPaneLogs);
 
         JTextArea textAreaLogs = new JTextArea();
         scrollPaneLogs.setViewportView(textAreaLogs);
 
         JLabel lblCopyright = new JLabel("Copyright @ Aleksei Mahhov, 2015");
         lblCopyright.setBounds(700, 270, 260, 15);
-        getContentPane().add(lblCopyright);
+        frame.getContentPane().add(lblCopyright);
 
         components.put(btnStart.getText(), btnStart);
         components.put(btnStop.getText(), btnStop);
@@ -199,28 +199,21 @@ public class TrackView extends JFrame {
         components.put(rdbtn15min.getName(), rdbtn15min);
         components.put(rdbtn30min.getName(), rdbtn30min);
         components.put(rdbtn60min.getName(), rdbtn60min);
+
+        frame.setBounds(100, 100, 1000, 350);
+        this.context = context;
     }
 
-    public Component getComponentByName(String name) {
+    public void show(boolean show) {
+        frame.setVisible(show);
+    }
+
+    private Component getComponentByName(String name) {
         Component component = components.get(name);
         if (component != null) {
             return component;
         }
         throw new IllegalArgumentException("No component foudn for name=" + name);
-    }
-
-    public static void main(String[] args) {
-        EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                try {
-                    TrackView view = new TrackView();
-                    view.setBounds(100, 100, 1000, 350);
-                    view.setVisible(true);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
     }
 
     /* Actions */
@@ -237,11 +230,13 @@ public class TrackView extends JFrame {
                 button.setEnabled(false);
                 btnStop.setEnabled(true);
                 status1.setText("Track started");
+                context.start();
             } else {
                 JButton btnStart = (JButton) getComponentByName("Start");
                 btnStart.setEnabled(true);
                 button.setEnabled(false);
                 status1.setText("Track stoped");
+                context.stop();
             }
         }
     }
@@ -262,12 +257,16 @@ public class TrackView extends JFrame {
             button60.setSelected(false);
             if ("10".equals(button.getName())) {
                 button10.setSelected(true);
+                context.setCheckInterval(10 * 60);
             } else if ("15".equals(button.getName())) {
                 button15.setSelected(true);
+                context.setCheckInterval(15 * 60);
             } else if ("30".equals(button.getName())) {
                 button30.setSelected(true);
+                context.setCheckInterval(30 * 60);
             } else if ("60".equals(button.getName())) {
                 button60.setSelected(true);
+                context.setCheckInterval(60 * 60);
             }
         }
     }

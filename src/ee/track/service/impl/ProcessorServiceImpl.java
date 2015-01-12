@@ -1,4 +1,4 @@
-package ee.track.program;
+package ee.track.service.impl;
 
 import static org.apache.commons.lang.StringUtils.replace;
 
@@ -16,7 +16,11 @@ import org.jsoup.select.Elements;
 
 import ee.track.model.Data;
 import ee.track.model.Data.DataBuilder;
+import ee.track.service.ProcessorService;
 
+/**
+ * Process data from auto24.ee 
+ */
 public class ProcessorServiceImpl implements ProcessorService {
     private static Logger logger = Logger.getLogger(ProcessorServiceImpl.class);
 
