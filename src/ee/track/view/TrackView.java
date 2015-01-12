@@ -5,7 +5,10 @@ import java.awt.Component;
 import java.awt.Font;
 import java.awt.SystemColor;
 import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,6 +44,10 @@ public class TrackView {
     private final Action openLogsAction = new OpenLogsAction();
     private final Action exitAction = new ExitAction();
     private final Action showInterFrameAction = new ShowInternalFrameAction();
+    private final int x = 100;
+    private final int y = 100;
+    private final int width = 1000;
+    private final int height = 350;
     private TrackContext context;
 
     public TrackView(TrackContext context) {
@@ -181,15 +188,27 @@ public class TrackView {
         frame.getContentPane().add(lblLogs);
 
         JScrollPane scrollPaneLogs = new JScrollPane();
-        scrollPaneLogs.setBounds(5, 65, 960, 200);
+        scrollPaneLogs.setBounds(5, 65, width - 40, height - 150);
         frame.getContentPane().add(scrollPaneLogs);
 
         JTextArea textAreaLogs = new JTextArea();
         scrollPaneLogs.setViewportView(textAreaLogs);
 
         JLabel lblCopyright = new JLabel("Copyright @ Aleksei Mahhov, 2015");
-        lblCopyright.setBounds(700, 270, 260, 15);
+        lblCopyright.setBounds(width - 300, height - 80, 260, 15);
         frame.getContentPane().add(lblCopyright);
+
+        frame.getRootPane().addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                JScrollPane _scrollPaneLogs = (JScrollPane) getComponentByName("logPanel");
+                JLabel _lblCopyright = (JLabel) getComponentByName("lblCopyright");
+                if (_scrollPaneLogs != null) {
+                    _scrollPaneLogs.setBounds(5, 65, frame.getBounds().width - 30, frame.getBounds().height - 150);
+                    _lblCopyright.setBounds(frame.getBounds().width - 300, frame.getBounds().height - 80, 260, 15);
+                }
+            }
+        });
 
         components.put(btnStart.getText(), btnStart);
         components.put(btnStop.getText(), btnStop);
@@ -199,21 +218,15 @@ public class TrackView {
         components.put(rdbtn15min.getName(), rdbtn15min);
         components.put(rdbtn30min.getName(), rdbtn30min);
         components.put(rdbtn60min.getName(), rdbtn60min);
+        components.put("logPanel", scrollPaneLogs);
+        components.put("lblCopyright", lblCopyright);
 
-        frame.setBounds(100, 100, 1000, 350);
+        frame.setBounds(x, y, width, height);
         this.context = context;
     }
 
     public void show(boolean show) {
         frame.setVisible(show);
-    }
-
-    private Component getComponentByName(String name) {
-        Component component = components.get(name);
-        if (component != null) {
-            return component;
-        }
-        throw new IllegalArgumentException("No component foudn for name=" + name);
     }
 
     /* Actions */
@@ -224,18 +237,17 @@ public class TrackView {
         @Override
         public void actionPerformed(ActionEvent e) {
             JButton button = (JButton) e.getSource();
-            JLabel status1 = (JLabel) getComponentByName("Status1");
             if ("Start".equals(button.getText())) {
                 JButton btnStop = (JButton) getComponentByName("Stop");
                 button.setEnabled(false);
                 btnStop.setEnabled(true);
-                status1.setText("Track started");
+                updateStatus("Track started");
                 context.start();
             } else {
                 JButton btnStart = (JButton) getComponentByName("Start");
                 btnStart.setEnabled(true);
                 button.setEnabled(false);
-                status1.setText("Track stoped");
+                updateStatus("Track stoped");
                 context.stop();
             }
         }
@@ -276,7 +288,6 @@ public class TrackView {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            JLabel status2 = (JLabel) getComponentByName("Status2");
             if (isWindowsOS()) {
                 Runtime runtime = Runtime.getRuntime();
                 try {
@@ -293,7 +304,6 @@ public class TrackView {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            JLabel status2 = (JLabel) getComponentByName("Status2");
             if (isWindowsOS()) {
                 Runtime runtime = Runtime.getRuntime();
                 try {
@@ -334,5 +344,20 @@ public class TrackView {
 
     private boolean isWindowsOS() {
         return StringUtils.containsIgnoreCase(System.getProperty("os.name"), "windows");
+    }
+
+    private Component getComponentByName(String name) {
+        Component component = components.get(name);
+        if (component != null) {
+            return component;
+        }
+        throw new IllegalArgumentException("No component foudn for name=" + name);
+    }
+
+    private void updateStatus(String newStatus) {
+        JLabel status1 = (JLabel) getComponentByName("Status1");
+        JLabel status2 = (JLabel) getComponentByName("Status2");
+        status1.setText(newStatus);
+        status2.setText("" + new Date());
     }
 }
