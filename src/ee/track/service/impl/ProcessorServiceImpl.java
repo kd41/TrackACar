@@ -38,6 +38,7 @@ public class ProcessorServiceImpl implements ProcessorService {
 
         if (doc == null) {
             logger.warn("Can't get document from url: " + url);
+            return dataList;
         }
 
         Elements elements = doc.select(".result-row");

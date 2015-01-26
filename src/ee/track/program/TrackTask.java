@@ -35,8 +35,8 @@ public class TrackTask implements Runnable {
             ProcessorService processor = null;
             for (String url : DataIO.getUrls()) {
                 // get search results
-                 processor = new ProcessorServiceMockImpl(url);
-//                processor = new ProcessorServiceImpl(url);
+//                 processor = new ProcessorServiceMockImpl(url);
+                processor = new ProcessorServiceImpl(url);
                 newResults = processor.getData();
 
                 // skip if nothing found
@@ -99,7 +99,7 @@ public class TrackTask implements Runnable {
                 }
             }
             // sabe to file
-            DataIO.save(linesToWrite);
+            DataIO.saveChanges(linesToWrite);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }

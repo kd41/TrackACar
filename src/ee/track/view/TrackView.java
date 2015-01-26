@@ -10,7 +10,12 @@ import java.awt.event.ComponentEvent;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -49,6 +54,7 @@ public class TrackView {
     private final int width = 1000;
     private final int height = 350;
     private TrackContext context;
+    private LogReadScheduler logScheduler = new LogReadScheduler();
 
     public TrackView(TrackContext context) {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -219,6 +225,7 @@ public class TrackView {
         components.put(rdbtn30min.getName(), rdbtn30min);
         components.put(rdbtn60min.getName(), rdbtn60min);
         components.put("logPanel", scrollPaneLogs);
+        components.put("textAreaLogs", textAreaLogs);
         components.put("lblCopyright", lblCopyright);
 
         frame.setBounds(x, y, width, height);
@@ -243,12 +250,14 @@ public class TrackView {
                 btnStop.setEnabled(true);
                 updateStatus("Track started");
                 context.start();
+                logScheduler.start();
             } else {
                 JButton btnStart = (JButton) getComponentByName("Start");
                 btnStart.setEnabled(true);
                 button.setEnabled(false);
                 updateStatus("Track stoped");
                 context.stop();
+                logScheduler.stop();
             }
         }
     }
@@ -359,5 +368,38 @@ public class TrackView {
         JLabel status2 = (JLabel) getComponentByName("Status2");
         status1.setText(newStatus);
         status2.setText("" + new Date());
+    }
+
+    /* Classes */
+    private class LogReadScheduler {
+        private ScheduledExecutorService scheduler;
+
+        public void start() {
+            scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "LogReadScheduler");
+                }
+            });
+            scheduler.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        List<String> reads = DataIO.getChanges();
+                        JTextArea area = (JTextArea) getComponentByName("textAreaLogs");
+                        String text = StringUtils.join(reads, "\n");
+                        area.setText(text);
+                    } catch (IOException e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                }
+
+            }, 10, 30, TimeUnit.SECONDS);
+        }
+
+        public void stop() {
+            scheduler.shutdown();
+            scheduler = null;
+        }
     }
 }

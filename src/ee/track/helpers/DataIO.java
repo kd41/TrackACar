@@ -19,7 +19,7 @@ public class DataIO {
         FileUtils.writeLines(new File(RESULT_FILE_NAME), results, false);
     }
 
-    public static void save(Collection<?> lines) throws IOException {
+    public static void saveChanges(Collection<?> lines) throws IOException {
         FileUtils.writeLines(new File(CHANGES_FILE_NAME), lines, true);
     }
 
