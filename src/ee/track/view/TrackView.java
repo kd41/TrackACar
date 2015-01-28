@@ -2,12 +2,17 @@ package ee.track.view;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.Font;
 import java.awt.SystemColor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.net.URI;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -31,12 +36,14 @@ import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Utilities;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+import ee.track.helpers.DataHelper;
 import ee.track.helpers.DataIO;
-import ee.track.program.TrackContext;
 
 public class TrackView {
     private static Logger logger = Logger.getLogger(TrackView.class);
@@ -53,10 +60,11 @@ public class TrackView {
     private final int y = 100;
     private final int width = 1000;
     private final int height = 350;
-    private TrackContext context;
     private LogReadScheduler logScheduler = new LogReadScheduler();
+    private TrackViewScheduler scheduler;
+    private long checkInterval;
 
-    public TrackView(TrackContext context) {
+    public TrackView() {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setTitle("TrackACar viewer");
 
@@ -126,6 +134,7 @@ public class TrackView {
         rdbtn15min.setSelected(true);
         rdbtn15min.setBounds(105, 5, 20, 20);
         panelSettings.add(rdbtn15min);
+        setCheckInterval(15);
 
         JRadioButton rdbtn30min = new JRadioButton("");
         rdbtn30min.setAction(radioButtonAction);
@@ -199,6 +208,7 @@ public class TrackView {
 
         JTextArea textAreaLogs = new JTextArea();
         scrollPaneLogs.setViewportView(textAreaLogs);
+        textAreaLogs.addMouseListener(new TextAreaLogsMouseListener());
 
         JLabel lblCopyright = new JLabel("Copyright @ Aleksei Mahhov, 2015");
         lblCopyright.setBounds(width - 300, height - 80, 260, 15);
@@ -209,9 +219,11 @@ public class TrackView {
             public void componentResized(ComponentEvent e) {
                 JScrollPane _scrollPaneLogs = (JScrollPane) getComponentByName("logPanel");
                 JLabel _lblCopyright = (JLabel) getComponentByName("lblCopyright");
+                JLabel _lblStatus1 = (JLabel) getComponentByName("Status1");
                 if (_scrollPaneLogs != null) {
                     _scrollPaneLogs.setBounds(5, 65, frame.getBounds().width - 30, frame.getBounds().height - 150);
                     _lblCopyright.setBounds(frame.getBounds().width - 300, frame.getBounds().height - 80, 260, 15);
+                    _lblStatus1.setBounds(400, 10, frame.getBounds().width - 430, 15);
                 }
             }
         });
@@ -229,7 +241,6 @@ public class TrackView {
         components.put("lblCopyright", lblCopyright);
 
         frame.setBounds(x, y, width, height);
-        this.context = context;
     }
 
     public void show(boolean show) {
@@ -249,14 +260,16 @@ public class TrackView {
                 button.setEnabled(false);
                 btnStop.setEnabled(true);
                 updateStatus("Track started");
-                context.start();
+                scheduler = new TrackViewScheduler(checkInterval);
+                scheduler.start();
                 logScheduler.start();
             } else {
                 JButton btnStart = (JButton) getComponentByName("Start");
                 btnStart.setEnabled(true);
                 button.setEnabled(false);
                 updateStatus("Track stoped");
-                context.stop();
+                scheduler.stop();
+                scheduler = null;
                 logScheduler.stop();
             }
         }
@@ -278,16 +291,16 @@ public class TrackView {
             button60.setSelected(false);
             if ("10".equals(button.getName())) {
                 button10.setSelected(true);
-                context.setCheckInterval(10 * 60);
+                setCheckInterval(10);
             } else if ("15".equals(button.getName())) {
                 button15.setSelected(true);
-                context.setCheckInterval(15 * 60);
+                setCheckInterval(15);
             } else if ("30".equals(button.getName())) {
                 button30.setSelected(true);
-                context.setCheckInterval(30 * 60);
+                setCheckInterval(30);
             } else if ("60".equals(button.getName())) {
                 button60.setSelected(true);
-                context.setCheckInterval(60 * 60);
+                setCheckInterval(60);
             }
         }
     }
@@ -341,11 +354,46 @@ public class TrackView {
             JMenuItem menuItem = (JMenuItem) e.getSource();
             JTextPane textPane = (JTextPane) internalFrame.getContentPane().getComponent(0);
             if ("Description".equals(menuItem.getText())) {
-                textPane.setText("Description of this program");
+                StringBuilder sb = new StringBuilder(256); 
+                sb.append("Go \"File\" -> \"Open list to track\" to set urls for tracking. Insert new url to next line.").append("\n");
+                sb.append("Go \"File\" -> \"Open logs\" to open logs file.").append("\n");
+                sb.append("By double click in text area opens the browser with url.").append("\n");
+                textPane.setText(sb.toString());
             } else if ("About".equals(menuItem.getText())) {
                 textPane.setText("Track a car program.\nVersion 1.0");
             }
             internalFrame.setVisible(true);
+        }
+    }
+
+    private class TextAreaLogsMouseListener extends MouseAdapter {
+        @Override
+        public void mouseClicked(MouseEvent event) {
+            if (event.getClickCount() == 2 && !event.isConsumed()) {
+                event.consume();
+
+                JTextArea textAreaLogs = (JTextArea) getComponentByName("textAreaLogs");
+                int offset = textAreaLogs.viewToModel(event.getPoint());
+
+                try {
+                    int rowStart = Utilities.getRowStart(textAreaLogs, offset);
+                    int rowEnd = Utilities.getRowEnd(textAreaLogs, offset);
+                    String url = DataHelper.getUrl(textAreaLogs.getText().substring(rowStart, rowEnd));
+
+                    if (StringUtils.isNotBlank(url)) {
+                        updateStatus(url);
+                        try {
+                            Desktop.getDesktop().browse(URI.create(url));
+                        } catch (IOException e) {
+                            logger.error(e.getMessage(), e);
+                        }
+                    } else {
+                        updateStatus("Url not found!");
+                    }
+                } catch (BadLocationException e1) {
+                    logger.error(e1.getMessage(), e1);
+                }
+            }
         }
     }
 
@@ -370,6 +418,10 @@ public class TrackView {
         status2.setText("" + new Date());
     }
 
+    private void setCheckInterval(int interval) {
+        checkInterval = interval * 60;
+    }
+
     /* Classes */
     private class LogReadScheduler {
         private ScheduledExecutorService scheduler;
@@ -387,6 +439,7 @@ public class TrackView {
                     try {
                         List<String> reads = DataIO.getChanges();
                         JTextArea area = (JTextArea) getComponentByName("textAreaLogs");
+                        Collections.reverse(reads);
                         String text = StringUtils.join(reads, "\n");
                         area.setText(text);
                     } catch (IOException e) {

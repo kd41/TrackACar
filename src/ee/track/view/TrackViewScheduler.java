@@ -1,18 +1,20 @@
-package ee.track.program;
+package ee.track.view;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
-public class TrackScheduler {
+import ee.track.program.TrackTask;
+
+public class TrackViewScheduler {
     private final ScheduledExecutorService scheduler;
     private long period;
 
     /**
      * @param period in seconds
      */
-    public TrackScheduler(long period) {
+    public TrackViewScheduler(long period) {
         scheduler = Executors.newScheduledThreadPool(1, new TrackThreadFactory());
         this.period = period;
     }
