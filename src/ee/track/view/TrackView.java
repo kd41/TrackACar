@@ -10,6 +10,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
@@ -313,7 +314,16 @@ public class TrackView {
             if (isWindowsOS()) {
                 Runtime runtime = Runtime.getRuntime();
                 try {
-                    runtime.exec("C:/Windows/system32/notepad.exe " + System.getProperty("user.dir") + "/" + DataIO.LINKS_FILE_NAME);
+                    String filePath = System.getProperty("user.dir") + "/" + DataIO.LINKS_FILE_NAME;
+                    File file = new File(filePath);
+                    if (!file.exists()) {
+                        File parentFile = new File(file.getParent());
+                        if (!parentFile.exists()) {
+                            parentFile.mkdir();
+                        }
+                        file.createNewFile();
+                    }
+                    runtime.exec("C:/Windows/system32/notepad.exe " + filePath);
                 } catch (IOException e1) {
                     logger.error(e1.getMessage(), e1);
                 }
@@ -354,7 +364,7 @@ public class TrackView {
             JMenuItem menuItem = (JMenuItem) e.getSource();
             JTextPane textPane = (JTextPane) internalFrame.getContentPane().getComponent(0);
             if ("Description".equals(menuItem.getText())) {
-                StringBuilder sb = new StringBuilder(256); 
+                StringBuilder sb = new StringBuilder(256);
                 sb.append("Go \"File\" -> \"Open list to track\" to set urls for tracking. Insert new url to next line.").append("\n");
                 sb.append("Go \"File\" -> \"Open logs\" to open logs file.").append("\n");
                 sb.append("By double click in text area opens the browser with url.").append("\n");
