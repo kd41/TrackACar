@@ -256,10 +256,18 @@ public class TrackView {
         @Override
         public void actionPerformed(ActionEvent e) {
             JButton button = (JButton) e.getSource();
+            JRadioButton rdbtn10min = (JRadioButton) getComponentByName("10");
+            JRadioButton rdbtn15min = (JRadioButton) getComponentByName("15");
+            JRadioButton rdbtn30min = (JRadioButton) getComponentByName("30");
+            JRadioButton rdbtn60min = (JRadioButton) getComponentByName("60");
             if ("Start".equals(button.getText())) {
                 JButton btnStop = (JButton) getComponentByName("Stop");
                 button.setEnabled(false);
                 btnStop.setEnabled(true);
+                rdbtn10min.setEnabled(false);
+                rdbtn15min.setEnabled(false);
+                rdbtn30min.setEnabled(false);
+                rdbtn60min.setEnabled(false);
                 updateStatus("Track started");
                 scheduler = new TrackViewScheduler(checkInterval);
                 scheduler.start();
@@ -268,6 +276,10 @@ public class TrackView {
                 JButton btnStart = (JButton) getComponentByName("Start");
                 btnStart.setEnabled(true);
                 button.setEnabled(false);
+                rdbtn10min.setEnabled(true);
+                rdbtn15min.setEnabled(true);
+                rdbtn30min.setEnabled(true);
+                rdbtn60min.setEnabled(true);
                 updateStatus("Track stoped");
                 scheduler.stop();
                 scheduler = null;
