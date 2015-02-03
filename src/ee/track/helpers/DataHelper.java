@@ -34,7 +34,7 @@ public class DataHelper {
         if (!oldValue.getYear().equals(newValue.getYear())) {
             change.addChange("year", oldValue.getYear(), newValue.getYear());
         }
-        if (!oldValue.getFuel().equals(newValue.getFuel())) {
+        if ((oldValue.getFuel() != null) && !oldValue.getFuel().equals(newValue.getFuel())) {
             change.addChange("fuel", oldValue.getFuel(), newValue.getFuel());
         }
         if (!oldValue.getGear().equals(newValue.getGear())) {

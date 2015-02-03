@@ -104,13 +104,13 @@ public class TrackView {
         mnTrackACar.add(mntmAbout);
         frame.getContentPane().setLayout(null);
         internalFrame.setClosable(true);
-        internalFrame.setBounds(410, 11, 550, 240);
+        internalFrame.setBounds(131, 11, 829, 240);
         frame.getContentPane().add(internalFrame);
         internalFrame.getContentPane().setLayout(null);
 
         JTextPane textPane = new JTextPane();
         textPane.setBackground(SystemColor.control);
-        textPane.setBounds(10, 11, 514, 189);
+        textPane.setBounds(10, 11, 793, 189);
         internalFrame.getContentPane().add(textPane);
 
         JPanel panelSettings = new JPanel();
@@ -377,7 +377,9 @@ public class TrackView {
             JTextPane textPane = (JTextPane) internalFrame.getContentPane().getComponent(0);
             if ("Description".equals(menuItem.getText())) {
                 StringBuilder sb = new StringBuilder(256);
-                sb.append("Go \"File\" -> \"Open list to track\" to set urls for tracking. Insert new url to next line.").append("\n");
+                sb.append("Go \"File\" -> \"Open list to track\" to set urls for tracking. Example:").append("\n"); 
+                sb.append("http://www.auto24.ee/kasutatud/nimekiri.php?bn=2&a=101102&aj=&b=4&l1=1&l2=175000&h=1&ae=2&af=200&ag=0&ag=1&otsi=otsi").append("\n");
+                sb.append("Insert new url to next line.").append("\n");
                 sb.append("Go \"File\" -> \"Open logs\" to open logs file.").append("\n");
                 sb.append("By double click in text area opens the browser with url.").append("\n");
                 textPane.setText(sb.toString());
