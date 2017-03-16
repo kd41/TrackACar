@@ -1,5 +1,28 @@
 package ee.track.view;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JInternalFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextPane;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
+import javax.swing.text.Highlighter.HighlightPainter;
+import javax.swing.text.Utilities;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
@@ -22,26 +45,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
-import javax.swing.AbstractAction;
-import javax.swing.Action;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JInternalFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextPane;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Utilities;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
 
 import ee.track.helpers.DataHelper;
 import ee.track.helpers.DataIO;
@@ -377,11 +380,12 @@ public class TrackView {
             JTextPane textPane = (JTextPane) internalFrame.getContentPane().getComponent(0);
             if ("Description".equals(menuItem.getText())) {
                 StringBuilder sb = new StringBuilder(256);
-                sb.append("Go \"File\" -> \"Open list to track\" to set urls for tracking. Example:").append("\n"); 
+                sb.append("Go \"File\" -> \"Open list to track\" to set urls for tracking. Example:").append("\n");
                 sb.append("http://www.auto24.ee/kasutatud/nimekiri.php?bn=2&a=101102&aj=&b=4&l1=1&l2=175000&h=1&ae=2&af=200&ag=0&ag=1&otsi=otsi").append("\n");
                 sb.append("Insert new url to next line.").append("\n");
                 sb.append("Go \"File\" -> \"Open logs\" to open logs file.").append("\n");
                 sb.append("By double click in text area opens the browser with url.").append("\n");
+                sb.append("Select text in text area to higliht matches.").append("\n");
                 textPane.setText(sb.toString());
             } else if ("About".equals(menuItem.getText())) {
                 textPane.setText("Track a car program.\nVersion 1.0");
@@ -416,6 +420,36 @@ public class TrackView {
                     }
                 } catch (BadLocationException e1) {
                     logger.error(e1.getMessage(), e1);
+                }
+            }
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            JTextArea textAreaLogs = (JTextArea) getComponentByName("textAreaLogs");
+            String selectedText = textAreaLogs.getSelectedText();
+            if (StringUtils.isNotBlank(selectedText)) {
+                Highlighter highlighter = textAreaLogs.getHighlighter();
+                highlighter.removeAllHighlights();
+                HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(Color.pink);
+                String textAreaText = textAreaLogs.getText();
+                int fromIndex = 0;
+                int matchesCount = 0;
+                try {
+                    while (fromIndex < textAreaText.length()) {
+                        int p0 = textAreaLogs.getText().indexOf(selectedText, fromIndex);
+                        if (p0 == -1) {
+                            break;
+                        }
+                        int p1 = p0 + selectedText.length();
+                        highlighter.addHighlight(p0, p1, painter);
+                        fromIndex = p0 + 1;
+                        matchesCount++;
+                    }
+                    updateStatus("Found matches total: " + matchesCount);
+                } catch (BadLocationException ex) {
+                    logger.error(ex.getMessage(), ex);
+                    updateStatus("Error!!! " + ex.getMessage());
                 }
             }
         }
